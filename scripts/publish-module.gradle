@@ -1,0 +1,58 @@
+apply plugin: 'maven-publish'
+apply plugin: 'signing'
+
+group = PUBLISH_GROUP_ID
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                groupId PUBLISH_GROUP_ID
+                artifactId PUBLISH_ARTIFACT_ID
+                version PUBLISH_VERSION
+
+                if (project.plugins.findPlugin("com.android.library")) {
+                    from components.release
+                } else {
+                    from components.java
+                }
+
+                pom {
+                    name = PUBLISH_ARTIFACT_ID
+                    description = PUBLISH_DESCRIPTION
+                    url = 'https://private-registry/general/pg/rust-sdk/pg-rust-components-kotlin'
+                    licenses {
+                        license {
+                            name = 'The Apache Software License, Version 2.0'
+                            url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                        }
+                    }
+                }
+            }
+        }
+
+        repositories {
+            // GitLab Package Registry
+            if (rootProject.ext["gitlabUrl"] && rootProject.ext["gitlabProjectId"]) {
+                maven {
+                    name = "GitLab"
+                    url = uri("${rootProject.ext["gitlabUrl"]}/api/v4/projects/${rootProject.ext["gitlabProjectId"]}/packages/maven")
+                    credentials(HttpHeaderCredentials) {
+                        name = "Private-Token"
+                        value = rootProject.ext["gitlabToken"]
+                    }
+                    authentication {
+                        header(HttpHeaderAuthentication)
+                    }
+                }
+            }
+        }
+    }
+
+    // Configure the publish task to only publish to GitLab
+    tasks.named('publish') {
+        dependsOn 'publishReleasePublicationToGitLabRepository'
+        // Remove dependency on other publication tasks
+        setDependsOn([tasks.named('publishReleasePublicationToGitLabRepository')])
+    }
+}
