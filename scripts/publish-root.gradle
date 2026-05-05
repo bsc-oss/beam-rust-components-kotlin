@@ -1,0 +1,21 @@
+ext["signing.keyId"] = ''
+ext["signing.password"] = ''
+ext["signing.key"] = ''
+ext["gitlabProjectId"] = ''
+ext["gitlabToken"] = ''
+ext["gitlabUrl"] = ''
+
+File secretPropsFile = project.rootProject.file('local.properties')
+if (secretPropsFile.exists()) {
+    // Read local.properties file first if it exists
+    Properties p = new Properties()
+    new FileInputStream(secretPropsFile).withCloseable { is -> p.load(is) }
+    p.each { name, value -> ext[name] = value }
+} else {
+    // Use system environment variables
+    ext["gitlabProjectId"] = System.getenv('GITLAB_PROJECT_ID')
+    ext["gitlabToken"] = System.getenv('GITLAB_TOKEN')
+    ext["gitlabUrl"] = System.getenv('GITLAB_URL')
+}
+
+// Note: nexusPublishing configuration removed as we're only using GitLab package registry
